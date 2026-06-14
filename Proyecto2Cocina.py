@@ -7,9 +7,22 @@ import pygame
 from pygame.locals import *
 pygame.init()
 
+#--- Clases ingredientes ----------------------
 
+class ingredientes:
+    def __init__(self, Lechuga, Tomate, Cebolla, Pan,):
+        pass 
+class Ensalada:
+    #El nombre de las ensaladas lo estoy definiendo según los ingredientes siendo L = Lechuga T= Tomate C= Cebolla, por cualquier cosa de que los vaya a tener que usar  
+     
+    def __init__(self, EnsaladaLT, EnsaladaLC, EnsaladaLTC):
+        self.EnsaladaLT = [self.Lechuga, self.Tomate,]
+        self.EnsaladaLT = [self.Lechuga, self.Cebolla,]
+        self.EnsaladaLT = [self.Lechuga, self.Tomate, self.Cebolla]
+        
+        pass
 
-# Configuración de la pantalla
+#--- Configuración de la pantalla ------------------------
 
 WIDTH, HEIGHT = 800, 600
 Tile_size = 25 # tamano Cuadricula de cocina
@@ -25,7 +38,7 @@ estado = "menu"
 fuente_titulo = pygame.font.SysFont(None, 80)
 fuente_boton = pygame.font.SysFont(None, 50)
 
-#Crear Chef
+#--- Crear Chef ------------------------------------------------
 
 class Chef:
 
@@ -66,6 +79,8 @@ class Chef:
             self.size,
             self.size
         )
+
+#-----------------Crear estaciones ------------------------------------
 
 class Estacion:
     def __init__(self, x, y, color, nombre):
