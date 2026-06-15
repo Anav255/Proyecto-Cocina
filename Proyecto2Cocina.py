@@ -7,20 +7,6 @@ import pygame
 from pygame.locals import *
 pygame.init()
 
-#--- Clases ingredientes ----------------------
-
-class ingredientes:
-    def __init__(self, Lechuga, Tomate, Cebolla, Pan,):
-        pass 
-class Ensalada:
-    #El nombre de las ensaladas lo estoy definiendo según los ingredientes siendo L = Lechuga T= Tomate C= Cebolla, por cualquier cosa de que los vaya a tener que usar  
-     
-    def __init__(self, EnsaladaLT, EnsaladaLC, EnsaladaLTC):
-        self.EnsaladaLT = [self.Lechuga, self.Tomate,]
-        self.EnsaladaLT = [self.Lechuga, self.Cebolla,]
-        self.EnsaladaLT = [self.Lechuga, self.Tomate, self.Cebolla]
-        
-        pass
 
 #--- Configuración de la pantalla ------------------------
 
@@ -47,6 +33,7 @@ class Chef:
         self.y = y
         self.size = 40
         self.color = color
+        self.inventario = []
 
     def draw(self, screen):
         pygame.draw.rect(
@@ -80,16 +67,40 @@ class Chef:
             self.size
         )
 
+    def agarrar_ingrediente(self, ingrediente):
+        if len(self.inventario) < 4:
+            self.inventario.append(ingrediente)
+            ingredientes = [i.nombre for i in self.inventario]
+            print(f"ingredientes actuales {ingredientes}")
+        else: 
+            print("inventario lleno")    
+    
+
+#--- Clases ingredientes ----------------------
+
+class Ingrediente:
+    def __init__(self, nombre, ruta_imagen):
+        self.nombre = nombre
+        self.imagen = pygame.image.load(ruta_imagen)
+
+    
+ingredientes_faltantes = [
+Ingrediente("Cebolla","img/cebolla.png"),
+Ingrediente("Pan","img/pan.png"),
+Ingrediente("Queso","img/queso.png"),
+Ingrediente("Carne","img/carne.png")]
+    
 #-----------------Crear estaciones ------------------------------------
 
 class Estacion:
-    def __init__(self, x, y, color, nombre):
+    def __init__(self, x, y, color, nombre, ingrediente = None):
         self.x = x
         self.y = y
         self.width = 50
         self.height = 50
         self.color = color
         self.nombre = nombre
+        self.ingrediente = ingrediente
         self.rect = pygame.Rect(
             self.x,
             self.y,
@@ -118,14 +129,16 @@ despensa_lechuga = Estacion(
     50,
     50,
     (0,255,0),
-    "Lechuga"
+    "Lechuga",
+    Ingrediente("Lechuga","img/lechuga.png")
 )
 
 despensa_tomate = Estacion(
     150,
     50,
     (255,0,0),
-    "Tomate"
+    "Tomate",
+    Ingrediente("Tomate","img/tomate.png")
 )
 
 tabla_picar = Estacion(
@@ -162,6 +175,52 @@ estaciones = [
     entrega
 ]
 
+ 
+#--- Clase Orden ----------------------
+
+class Orden:
+    def __init__(self, nivel, pedido, ingredientesNecesarios):
+        self.nivel = nivel
+        self.pedido = pedido
+        self.ingredientesNecesarios = ingredientesNecesarios
+
+    def ingrdientesPedido(self, inventarioChef):
+        ingredientes = [i.nombre for i in inventarioChef]
+        return all(ing in ingredientes for ing in self.ingredientesNecesarios)
+    
+
+    def agarrar_ingrediente(self, ingrediente):
+        if len(self.inventario) < 4:
+            self.inventario.append(ingrediente)
+            ingredientes = [i.nombre for i in self.inventario]
+            print(f"ingredientes actuales {ingredientes}")
+        else: 
+            print("inventario lleno")    
+    
+
+    def orden_hamburguesa():
+        base = ["Pan", "Carne"]
+        extras = ["Queso", "Tomate", "Lechuga", "Cebolla"]
+        agregarextras = random.sample(extras, 2)
+        ingredientes = base + agregarextras
+        return Orden(2, "Hamburguesa", ingredientes)
+
+PedidosNivel = {
+        1: [Orden(1, "Ensalada LT", ["Lechuga", "Tomate"]),
+            Orden(1, "Ensalada LC", ["Lechuga", "Cebolla"]),
+            Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"])],
+        2: [Orden.orden_hamburguesa()]}
+
+nivel_actual = 1
+def generar_pedido(nivel):
+    if nivel == 1:
+        pedido = random.choice(PedidosNivel[1])     
+    elif nivel == 2:
+        pedido = PedidosNivel[2]
+    
+    print(f"Pedido actual: {pedido} ")
+    return pedido
+
 #------------ Ciclo principal ---------------------------------
 
 while running:
@@ -182,8 +241,23 @@ while running:
                     chef_activo = chef2
                 else:
                     chef_activo = chef1#Si no es chef1, entonces significa que es chef2: se cambia a chef1.
+           
+            if event.key == pygame.K_e: #Esta parte lo que hace es que el juego reacciona si el chef toca la letra e cerca de una estación
+                for estacion in estaciones:
+                    if chef_activo.get_rect().colliderect(estacion.rect):
 
+                        if estacion.nombre == "entrega":
+                            if pedido_actual.verificar(chef_activo.inventario):
+                                print("Pedido actual entregado")
+                                chef_activo.inventario.clear()
+                                pedido_actual = generar_pedido(nivel_actual)
+                                tiempo_ultimo_pedido = pygame.time.get_ticks()
+                            else:
+                                print("Pedido incorrecto")
 
+                        elif estacion.ingrediente:
+                            chef_activo.agarrar_ingrediente(estacion.ingrediente)
+                            break
     screen.fill((255,255,255))
 
     if estado == "menu": #lo que ensena si esta en el menu
@@ -264,12 +338,7 @@ while running:
                     )
                 )
 
-
     pygame.display.flip()
     clock.tick(FPS)
 
 pygame.quit()
-
-
-
-
