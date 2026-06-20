@@ -23,6 +23,7 @@ estado = "menu"
 
 fuente_titulo = pygame.font.SysFont(None, 80)
 fuente_boton = pygame.font.SysFont(None, 50)
+fuente_pequena = pygame.font.SysFont(None, 30)
 
 #--- Crear Chef ------------------------------------------------
 
@@ -74,33 +75,67 @@ class Chef:
             print(f"ingredientes actuales {ingredientes}")
         else: 
             print("inventario lleno")    
+
+    def picar_ingredientes(self):
+        for ingrediente in self.inventario:
+            if ingrediente.nombre in [
+                "Lechuga",
+                "Tomate",
+                "Cebolla"
+            ]:
+                ingrediente.picado = True
+
+        print("Ingredientes picados")
     
+chef1 = Chef(100,250, (255, 0, 0))
+chef2 = Chef(100,300, (0, 0, 255))
+chef_activo = chef1
+
 
 #--- Clases ingredientes ----------------------
 
 class Ingrediente:
-    def __init__(self, nombre, ruta_imagen):
+    def __init__(self, nombre, ruta_imagen, ruta_picado=None):
         self.nombre = nombre
         self.imagen = pygame.image.load(ruta_imagen)
+        
+        if ruta_picado:
+            self.imagen_picada = pygame.image.load(
+                ruta_picado
+            )
+        else:
+            self.imagen_picada = self.imagen
+
+        self.picado = False
+        
 
     
 ingredientes_faltantes = [
-Ingrediente("Cebolla","img/cebolla.png"),
-Ingrediente("Pan","img/pan.png"),
-Ingrediente("Queso","img/queso.png"),
-Ingrediente("Carne","img/carne.png")]
+Ingrediente("Lechuga","img/lechuga.png", "img/lechugapicada.png"),
+Ingrediente("Tomate","img/tomate.png", "img/tomatepicado.png"),
+Ingrediente("Cebolla","img/cebolla.png", "img/cebollapicada.png"),
+Ingrediente("Pan","img/pan.png", None),
+Ingrediente("Queso","img/queso.png", None),
+Ingrediente("Carne","img/carne.png", None),
+Ingrediente("Papas","img/papas.png", None),
+Ingrediente("Postre","img/postre.png", None)]
     
 #-----------------Crear estaciones ------------------------------------
 
 class Estacion:
-    def __init__(self, x, y, color, nombre, ingrediente = None):
+    def __init__(self, x, y, color, nombre, ingrediente = None, imagen = None):
         self.x = x
         self.y = y
-        self.width = 50
-        self.height = 50
+        self.width = 100
+        self.height = 100
         self.color = color
         self.nombre = nombre
         self.ingrediente = ingrediente
+        self.imagen = pygame.image.load(imagen)
+        self.imagen = pygame.transform.scale(
+            self.imagen,
+            (100,100)
+        )
         self.rect = pygame.Rect(
             self.x,
             self.y,
@@ -110,68 +145,111 @@ class Estacion:
 
     def draw(self, screen):
 
-        pygame.draw.rect(
-            screen,
-            self.color,
-            (self.x, self.y, self.width, self.height)
+        screen.blit(
+            self.imagen,
+            (self.x,self.y)
         )
 
 
-chef1 = Chef(100,100, (255, 0, 0))
-chef2 = Chef(300,100, (0, 0, 255))
-chef_activo = chef1
+
 
 boton_play = pygame.Rect(300, 300, 200, 80)
 
 #-------------------- Estaciones ------------------------------
 
-despensa_lechuga = Estacion(
-    50,
-    50,
+despensa_lechuga = Estacion( #verde
+    250,
+    380,
     (0,255,0),
     "Lechuga",
-    Ingrediente("Lechuga","img/lechuga.png")
+    Ingrediente("Lechuga","img/lechuga.png"),
+    "img/cajalechuga.png"
 )
 
-despensa_tomate = Estacion(
-    150,
-    50,
+despensa_tomate = Estacion( #rojo
+    130,
+    370,
     (255,0,0),
     "Tomate",
-    Ingrediente("Tomate","img/tomate.png")
+    Ingrediente("Tomate","img/tomate.png"),
+    "img/cajatomate.png"
+)
+
+despensa_cebolla = Estacion( #Morado
+    20,
+    370,
+    (140,90,0),
+    "Cebolla",
+    Ingrediente("Cebolla","img/cebolla.png"),
+    "img/cajacebolla.png"
+)
+
+despensa_queso = Estacion( 
+    350,
+    370,
+    (140,90,0),
+    "Cebolla",
+    Ingrediente("Queso","img/queso.png"),
+    "img/cajaquesho.png"
+)
+
+despensa_carne = Estacion( #verde
+    450,
+    380,
+    (0,255,0),
+    "Carne",
+    Ingrediente("Carne","img/carne.png"),
+    "img/refricarne.jpeg"
 )
 
 tabla_picar = Estacion(
-    150,
-    50,
+    600,
+    380,
     (139,69,19),
-    "Tabla"
+    "Tabla",
+    None,
+    "img/tabla.png"
 )
 
 cocina = Estacion(
-    650,
-    50,
+    350,
+    100,
     (100,100,100),
-    "Cocina"
+    "Cocina",
+    None,
+    "img/cocina.png"
 )
 
 freidora = Estacion(
-    750,
-    50,
+    500,
+    95,
     (255,165,0),
-    "Freidora"
+    "Freidora",
+    None,
+    "img/freidora.png"
+)
+
+refrigeradora = Estacion(
+    650,
+    110,
+    (255,165,0),
+    "Refrigeradora",
+    None,
+    "img/refrigeradora.png"
 )
 
 entrega = Estacion(
-    350,
-    500,
+    130,
+    95,
     (0,0,255),
-    "Entrega"
+    "Entrega",
+    None,
+    "img/bandeja.png"
 )
 
 estaciones = [
-    despensa_lechuga, despensa_tomate,
-    tabla_picar, cocina, freidora,
+    despensa_lechuga, despensa_tomate, despensa_cebolla, despensa_queso, despensa_carne,
+    tabla_picar, cocina, freidora, refrigeradora,
     entrega
 ]
 
@@ -184,7 +262,7 @@ class Orden:
         self.pedido = pedido
         self.ingredientesNecesarios = ingredientesNecesarios
 
-    def ingrdientesPedido(self, inventarioChef):
+    def verficar(self, inventarioChef):
         ingredientes = [i.nombre for i in inventarioChef]
         return all(ing in ingredientes for ing in self.ingredientesNecesarios)
     
@@ -199,11 +277,30 @@ class Orden:
     
 
     def orden_hamburguesa():
-        base = ["Pan", "Carne"]
-        extras = ["Queso", "Tomate", "Lechuga", "Cebolla"]
-        agregarextras = random.sample(extras, 2)
-        ingredientes = base + agregarextras
-        return Orden(2, "Hamburguesa", ingredientes)
+        ingredientes = [
+            "Pan",
+            "Carne",
+            "Queso"
+        ]
+
+        extras = [
+            "Lechuga",
+            "Tomate",
+            "Cebolla"
+        ]
+
+        ingredientes += random.sample(
+            extras,
+            2
+        )
+
+        return Orden(
+            2,
+            "Hamburguesa",
+            ingredientes
+        )
+
+#---------- Niveles ----------------------------------------
 
 PedidosNivel = {
         1: [Orden(1, "Ensalada LT", ["Lechuga", "Tomate"]),
@@ -211,15 +308,89 @@ PedidosNivel = {
             Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"])],
         2: [Orden.orden_hamburguesa()]}
 
+#-------- Hacer pedidos ---------------------------------------
+
 nivel_actual = 1
+puntaje = 0
+pedidos_completados = 0
+
 def generar_pedido(nivel):
     if nivel == 1:
-        pedido = random.choice(PedidosNivel[1])     
+        return random.choice([
+            Orden(1, "Ensalada LT", ["Lechuga", "Tomate"]),
+
+            Orden(1, "Ensalada LC", ["Lechuga", "Cebolla"]),
+
+            Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"])
+        ])
     elif nivel == 2:
-        pedido = PedidosNivel[2]
+        return random.choice([
+            Orden(2, "Hamburguesa", ["Pan", "Carne", "Queso"]),
+
+            Orden(2, "Hamburguesa Especial", ["Pan", "Carne", "Tomate", "Lechuga"])
+        ])
     
-    print(f"Pedido actual: {pedido} ")
-    return pedido
+    else:
+        return random.choice([
+            Orden(3, "Combo", ["Pan", "Carne", "Queso", "Papas"])
+        ])
+        
+    
+
+
+def verificar_nivel():
+    global nivel_actual
+
+    if pedidos_completados >=10:
+        nivel_actual = 3
+
+    elif pedidos_completados >= 5:
+        nivel_actual = 2
+
+pedido_actual = generar_pedido(nivel_actual)
+tiempo_juego = 120
+tiempo_inicio = pygame.time.get_ticks()
+
+def mostrar_inventario(chef, x, y):
+    pygame.draw.rect(
+        screen,
+        (255, 255, 255),
+        (x, y, 220, 80)
+    )
+
+    titulo = fuente_pequena.render(
+        "Inventario",
+        True,
+        (0,0,0)
+    )
+
+    screen.blit(
+        titulo,
+        (x+10,y+5)
+    )
+
+    for i, ingrediente in enumerate(chef.inventario):
+
+        if ingrediente.picado:
+            imagen_actual = ingrediente.imagen_picada
+
+        else:
+            imagen_actual = ingrediente.imagen
+
+        imagen = pygame.transform.scale(
+            imagen_actual,
+            (45,45)
+        )
+
+        screen.blit(
+            imagen,
+            (
+                x+10+(i*50),
+                y+30
+            )
+        )
+
+        
 
 #------------ Ciclo principal ---------------------------------
 
@@ -246,18 +417,28 @@ while running:
                 for estacion in estaciones:
                     if chef_activo.get_rect().colliderect(estacion.rect):
 
-                        if estacion.nombre == "entrega":
-                            if pedido_actual.verificar(chef_activo.inventario):
+                        if estacion.nombre == "Entrega":
+                            if pedido_actual.verficar(chef_activo.inventario):
+                                
                                 print("Pedido actual entregado")
+
+                                puntaje += 100
+                                pedidos_completados += 1
+
+                                verificar_nivel()
+
                                 chef_activo.inventario.clear()
                                 pedido_actual = generar_pedido(nivel_actual)
-                                tiempo_ultimo_pedido = pygame.time.get_ticks()
+                                
                             else:
                                 print("Pedido incorrecto")
 
                         elif estacion.ingrediente:
                             chef_activo.agarrar_ingrediente(estacion.ingrediente)
                             break
+                        elif estacion.nombre == "Tabla":
+                            chef_activo.picar_ingredientes()
+
     screen.fill((255,255,255))
 
     if estado == "menu": #lo que ensena si esta en el menu
@@ -299,18 +480,152 @@ while running:
                     color,
                     (columna, fila, Tile_size, Tile_size)
                 )
+            
+
+        #Encimera cafe - mostrador arriba
+        pygame.draw.rect(
+            screen,
+            (150,80,40),
+            (0,120,WIDTH,60)
+        )
+        #Encimera cafe - mostrador abajo
+        pygame.draw.rect(
+            screen,
+            (150,80,40),
+            (0,400,WIDTH,60)
+        )
+
+
+        #--- Caja pedidos ---
+        pygame.draw.rect(
+            screen,
+            (255, 255, 255),
+            (20,10,350,100)
+        )
+
+        titulo = fuente_pequena.render(
+            pedido_actual.pedido,
+            True,
+            (0,0,0)
+        )
+
+        texto_nombre = fuente_pequena.render(
+            pedido_actual.pedido,
+            True,
+            (0,0,0)
+        )
+
+        screen.blit(
+            texto_nombre,
+            (30,15)
+        )
+
+        for i, nombre in enumerate(
+            pedido_actual.ingredientesNecesarios
+        ):
+            for ingrediente in ingredientes_faltantes:
+                if ingrediente.nombre == nombre:
+
+                    imagen = pygame.transform.scale(
+                        ingrediente.imagen,
+                        (45,45)
+                    )
+                    
+                    screen.blit(
+                        imagen,
+                        (
+                            40+(i*50),
+                            50
+                        )
+                    )
+
+        texto_nivel = fuente_boton.render(
+            f"Nivel {nivel_actual}",
+            True,
+            (0,0,255)
+        )
+
+        texto_puntos = fuente_boton.render(
+            f"Puntos {puntaje}",
+            True,
+            (0,150,0)
+        )
+        
+
+        for i, ingrediente in enumerate(chef_activo.inventario):
+
+            texto_ing = pygame.font.SysFont(
+                None,
+                30
+            ).render(
+                ingrediente.nombre,
+                True,
+                (0,0,0)
+            )
+            screen.blit(
+                texto_ing,
+                (
+                    180 + i * 120,
+                    45
+                )
+            )
+
+        #--- caja nivel ---
+        pygame.draw.rect(
+            screen,
+            (255,255,255),
+            (400,10,150,70)
+        )
+
+        screen.blit(
+            texto_nivel,
+            (420,25)
+        )
+
+        #--- caja puntos ---
+        pygame.draw.rect(
+            screen,
+            (255,255,255),
+            (620,10,150,70)
+        )
+
+        screen.blit(
+            texto_puntos,
+            (635,25)
+        )
+
 
         pygame.draw.rect(
             screen,
-            (120,80,40),
-            (0,50,WIDTH,50)
+            (255, 255, 255),
+            (350, HEIGHT-90, 100, 80)
+        )
+
+        tiempo_pasado = (
+            pygame.time.get_ticks()-tiempo_inicio
+        )//1000
+
+        tiempo_restante = tiempo_juego - tiempo_pasado
+
+        texto_tiempo = fuente_pequena.render(
+            f"{tiempo_restante}s",
+            True,
+            (0,0,0)
+        )
+        screen.blit(
+            texto_tiempo,
+            (375, HEIGHT-55)
         )
 
         #Ensenar estaciones en la cuadricula
         despensa_lechuga.draw(screen)
         despensa_tomate.draw(screen)
+        despensa_cebolla.draw(screen)
+        despensa_queso.draw(screen)
+        despensa_carne.draw(screen)
         tabla_picar.draw(screen)
         cocina.draw(screen)
+        refrigeradora.draw(screen)
         freidora.draw(screen)
         entrega.draw(screen)
 
@@ -320,6 +635,19 @@ while running:
 
         keys = pygame.key.get_pressed()
         chef_activo.move(keys)
+        
+        #Muestra inventarios en pantalla
+        mostrar_inventario(
+            chef1,
+            20,
+            HEIGHT-90
+        )
+
+        mostrar_inventario(
+            chef2,
+            WIDTH-240,
+            HEIGHT-90
+        )
 
         chef_rect = chef_activo.get_rect()
 
