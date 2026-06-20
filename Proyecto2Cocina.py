@@ -262,7 +262,14 @@ class Orden:
         self.pedido = pedido
         self.ingredientesNecesarios = ingredientesNecesarios
 
+<<<<<<< HEAD
     def verficar(self, inventarioChef):
+=======
+    def __str__(self):
+        return f"{self.pedido} - ingredientes: {self.ingredientesNecesarios}"
+
+    def verificar(self, inventarioChef):
+>>>>>>> b6f206b862a822612dc7ba90fc24f0c8df8d4706
         ingredientes = [i.nombre for i in inventarioChef]
         return all(ing in ingredientes for ing in self.ingredientesNecesarios)
     
@@ -308,7 +315,18 @@ PedidosNivel = {
             Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"])],
         2: [Orden.orden_hamburguesa()]}
 
+<<<<<<< HEAD
 #-------- Hacer pedidos ---------------------------------------
+=======
+# Orden pedidos 
+Pedidos = pygame.USEREVENT + 1
+
+def timer_pedidos(nivel):
+    if nivel == 1:
+        pygame.time.set_timer(Pedidos, 10_000)
+    elif nivel == 2:
+        pygame.time.set_timer(Pedidos, 20_000)
+>>>>>>> b6f206b862a822612dc7ba90fc24f0c8df8d4706
 
 nivel_actual = 1
 puntaje = 0
@@ -316,6 +334,7 @@ pedidos_completados = 0
 
 def generar_pedido(nivel):
     if nivel == 1:
+<<<<<<< HEAD
         return random.choice([
             Orden(1, "Ensalada LT", ["Lechuga", "Tomate"]),
 
@@ -323,6 +342,9 @@ def generar_pedido(nivel):
 
             Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"])
         ])
+=======
+        pedido = random.choice(PedidosNivel[1])
+>>>>>>> b6f206b862a822612dc7ba90fc24f0c8df8d4706
     elif nivel == 2:
         return random.choice([
             Orden(2, "Hamburguesa", ["Pan", "Carne", "Queso"]),
@@ -392,6 +414,8 @@ def mostrar_inventario(chef, x, y):
 
         
 
+pedido_actual = generar_pedido(nivel_actual)
+
 #------------ Ciclo principal ---------------------------------
 
 while running:
@@ -405,6 +429,11 @@ while running:
 
                 if boton_play.collidepoint(event.pos):
                     estado = "juego"
+                    timer_pedidos(nivel_actual)
+        
+        if event.type == Pedidos:
+            if estado == "juego":
+                pedido_actual = generar_pedido(nivel_actual)
         
         if event.type == pygame.KEYDOWN:#cuando se presiona
             if event.key == pygame.K_TAB:#si la tecla que se presiona es TAB
@@ -416,10 +445,16 @@ while running:
             if event.key == pygame.K_e: #Esta parte lo que hace es que el juego reacciona si el chef toca la letra e cerca de una estación
                 for estacion in estaciones:
                     if chef_activo.get_rect().colliderect(estacion.rect):
+                        print(f"Estacion actual: {estacion.nombre}")
 
                         if estacion.nombre == "Entrega":
+<<<<<<< HEAD
                             if pedido_actual.verficar(chef_activo.inventario):
                                 
+=======
+                            print(f"Necesitas: {pedido_actual.ingredientesNecesarios}")
+                            if pedido_actual.verificar(chef_activo.inventario):
+>>>>>>> b6f206b862a822612dc7ba90fc24f0c8df8d4706
                                 print("Pedido actual entregado")
 
                                 puntaje += 100
@@ -432,6 +467,7 @@ while running:
                                 
                             else:
                                 print("Pedido incorrecto")
+                                chef_activo.inventario.clear()
 
                         elif estacion.ingrediente:
                             chef_activo.agarrar_ingrediente(estacion.ingrediente)
