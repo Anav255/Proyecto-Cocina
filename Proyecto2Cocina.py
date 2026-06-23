@@ -262,14 +262,13 @@ class Orden:
         self.pedido = pedido
         self.ingredientesNecesarios = ingredientesNecesarios
 
-<<<<<<< HEAD
-    def verficar(self, inventarioChef):
-=======
+
+    
     def __str__(self):
         return f"{self.pedido} - ingredientes: {self.ingredientesNecesarios}"
 
     def verificar(self, inventarioChef):
->>>>>>> b6f206b862a822612dc7ba90fc24f0c8df8d4706
+
         ingredientes = [i.nombre for i in inventarioChef]
         return all(ing in ingredientes for ing in self.ingredientesNecesarios)
     
@@ -315,9 +314,9 @@ PedidosNivel = {
             Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"])],
         2: [Orden.orden_hamburguesa()]}
 
-<<<<<<< HEAD
+
 #-------- Hacer pedidos ---------------------------------------
-=======
+
 # Orden pedidos 
 Pedidos = pygame.USEREVENT + 1
 
@@ -326,15 +325,15 @@ def timer_pedidos(nivel):
         pygame.time.set_timer(Pedidos, 10_000)
     elif nivel == 2:
         pygame.time.set_timer(Pedidos, 20_000)
->>>>>>> b6f206b862a822612dc7ba90fc24f0c8df8d4706
 
 nivel_actual = 1
 puntaje = 0
 pedidos_completados = 0
+escenario_actual = 1
 
 def generar_pedido(nivel):
     if nivel == 1:
-<<<<<<< HEAD
+
         return random.choice([
             Orden(1, "Ensalada LT", ["Lechuga", "Tomate"]),
 
@@ -342,9 +341,9 @@ def generar_pedido(nivel):
 
             Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"])
         ])
-=======
+
         pedido = random.choice(PedidosNivel[1])
->>>>>>> b6f206b862a822612dc7ba90fc24f0c8df8d4706
+
     elif nivel == 2:
         return random.choice([
             Orden(2, "Hamburguesa", ["Pan", "Carne", "Queso"]),
@@ -368,6 +367,18 @@ def verificar_nivel():
 
     elif pedidos_completados >= 5:
         nivel_actual = 2
+    
+    cambiar_escenario()
+
+def cambiar_escenario():
+    global escenario_actual
+
+    if nivel_actual == 1:
+        escenario_actual = 1
+    elif nivel_actual == 2:
+        escenario_actual = 2
+    elif nivel_actual == 3:
+        escenario_actual = 3
 
 pedido_actual = generar_pedido(nivel_actual)
 tiempo_juego = 120
@@ -416,6 +427,42 @@ def mostrar_inventario(chef, x, y):
 
 pedido_actual = generar_pedido(nivel_actual)
 
+def dibujar_cocina():#para que cambie el escenario dependiendo del nivel
+    if escenario_actual == 1:
+        color_piso = (220,220,220)
+    elif escenario_actual == 2:
+        color_piso(180,180,220)
+    else:
+        color_piso = (220,180,180)
+    
+    screen.fill(color_piso)
+
+def cargar_escenario():
+    if escenario_actual == 1:
+        cocina.x = 350
+        cocina.y = 100
+
+        freidora.x = 500
+        freidora.y = 100
+
+    elif escenario_actual == 2:
+        cocina.x = 100
+        cocina.y = 100
+
+        freidora.x = 600
+        freidora.y = 100
+
+        tabla_picar.x = 400
+        tabla_picar.y = 300
+
+    elif escenario_actual == 3:
+        cocina.x = 300
+        cocina.y = 250
+
+        freidora.x = 500
+        freidora.y = 250
+
+
 #------------ Ciclo principal ---------------------------------
 
 while running:
@@ -448,13 +495,13 @@ while running:
                         print(f"Estacion actual: {estacion.nombre}")
 
                         if estacion.nombre == "Entrega":
-<<<<<<< HEAD
+
                             if pedido_actual.verficar(chef_activo.inventario):
                                 
-=======
+
                             print(f"Necesitas: {pedido_actual.ingredientesNecesarios}")
                             if pedido_actual.verificar(chef_activo.inventario):
->>>>>>> b6f206b862a822612dc7ba90fc24f0c8df8d4706
+
                                 print("Pedido actual entregado")
 
                                 puntaje += 100
@@ -475,7 +522,7 @@ while running:
                         elif estacion.nombre == "Tabla":
                             chef_activo.picar_ingredientes()
 
-    screen.fill((255,255,255))
+    dibujar_cocina()
 
     if estado == "menu": #lo que ensena si esta en el menu
         titulo = fuente_titulo.render(
@@ -500,6 +547,7 @@ while running:
         screen.blit(texto_play, (355,325))
 
     if estado == "juego":#lo que ensena si esta en el juego
+        cargar_escenario()
 
         for fila in range(0, HEIGHT, Tile_size):
             for columna in range(0, WIDTH, Tile_size):
