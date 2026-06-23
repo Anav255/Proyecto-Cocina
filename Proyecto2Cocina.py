@@ -29,35 +29,63 @@ fuente_pequena = pygame.font.SysFont(None, 30)
 
 class Chef:
 
-    def __init__(self, x, y, color):
+    def __init__(self, x, y, color, ruta_imagen):
         self.x = x
         self.y = y
         self.size = 40
+        self.size_visual = 110
         self.color = color
         self.inventario = []
+        self.direccion = "arriba"  # dirección inicial
+        self.imagen_original = pygame.image.load(ruta_imagen)
+        self.imagen_original = pygame.transform.scale(self.imagen_original, (self.size_visual, self.size_visual))
+        
 
     def draw(self, screen):
-        pygame.draw.rect(
-            screen,
-            self.color,
-            (self.x, self.y, self.size, self.size)
-        )
 
-    def move(self, keys):#movimiento del chef
+        if self.direccion == "arriba":
+            imagen = self.imagen_original 
+        elif self.direccion == "abajo":
+            imagen = pygame.transform.rotate(self.imagen_original, 180)
+        elif self.direccion == "izquierda":
+            imagen = pygame.transform.rotate(self.imagen_original, 90)
+        elif self.direccion == "derecha":
+            imagen = pygame.transform.rotate(self.imagen_original, -90)
+        offset = (self.size_visual - self.size) // 2
+        screen.blit(imagen, (self.x - offset, self.y - offset))
+
+    def move(self, keys, chef2):#movimiento del chef
 
         speed = 5
+        x = self.x
+        y = self.y
 
         if keys[pygame.K_w]:
             self.y -= speed
+            self.direccion = "arriba"
 
         if keys[pygame.K_s]:
             self.y += speed
-
+            self.direccion = "abajo"
         if keys[pygame.K_a]:
             self.x -= speed
+            self.direccion = "izquierda"
 
         if keys[pygame.K_d]:
             self.x += speed
+            self.direccion = "derecha"
+
+        # limites de la pantalla
+        self.x = max(0, min(self.x, WIDTH - self.size))
+        self.y = max(180, min(self.y, 360))
+
+        if chef2 is not None:
+            chef2_rect = chef2.get_rect()
+            if self.get_rect().colliderect(chef2_rect):
+                self.x = x
+                self.y = y
+
+                 
 
     def get_rect(self):
 
@@ -70,9 +98,15 @@ class Chef:
 
     def agarrar_ingrediente(self, ingrediente):
         if len(self.inventario) < 4:
-            self.inventario.append(ingrediente)
+            nuevo = Ingrediente(
+                ingrediente.nombre, ingrediente.ruta_imagen if hasattr(ingrediente, 'ruta_imagen') else None,
+                ingrediente.ruta_picado if hasattr(ingrediente, 'ruta_picado') else None)
+            nuevo.imagen = ingrediente.imagen.copy()
+            nuevo.imagen_picada = ingrediente.imagen_picada.copy() 
+            self.inventario.append(nuevo)
             ingredientes = [i.nombre for i in self.inventario]
             print(f"ingredientes actuales {ingredientes}")
+            
         else: 
             print("inventario lleno")    
 
@@ -83,22 +117,28 @@ class Chef:
                 "Tomate",
                 "Cebolla"
             ]:
-                ingrediente.picado = True
-
+                ingrediente.imagen = ingrediente.imagen_picada
+                ingrediente.picado = True  
+                ingrediente.nombre = ingrediente.nombre + " picado"
         print("Ingredientes picados")
     
-chef1 = Chef(100,250, (255, 0, 0))
-chef2 = Chef(100,300, (0, 0, 255))
+chef1 = Chef(100,250, (255, 0, 0), "img/chef1.png")
+chef2 = Chef(100,300, (0, 0, 255), "img/chef2.png")
 chef_activo = chef1
-
 
 #--- Clases ingredientes ----------------------
 
 class Ingrediente:
     def __init__(self, nombre, ruta_imagen, ruta_picado=None):
         self.nombre = nombre
-        self.imagen = pygame.image.load(ruta_imagen)
+        self.imagen = ruta_imagen
+        self.ruta_picado = ruta_picado
         
+        if ruta_imagen:
+            self.imagen = pygame.image.load(ruta_imagen)
+        else:
+            self.imagen = None
+            
         if ruta_picado:
             self.imagen_picada = pygame.image.load(
                 ruta_picado
@@ -151,8 +191,6 @@ class Estacion:
         )
 
 
-
-
 boton_play = pygame.Rect(300, 300, 200, 80)
 
 #-------------------- Estaciones ------------------------------
@@ -162,7 +200,7 @@ despensa_lechuga = Estacion( #verde
     380,
     (0,255,0),
     "Lechuga",
-    Ingrediente("Lechuga","img/lechuga.png"),
+    Ingrediente("Lechuga","img/lechuga.png", "img/lechugapicada.png"),
     "img/cajalechuga.png"
 )
 
@@ -171,7 +209,7 @@ despensa_tomate = Estacion( #rojo
     370,
     (255,0,0),
     "Tomate",
-    Ingrediente("Tomate","img/tomate.png"),
+    Ingrediente("Tomate","img/tomate.png", "img/tomatepicado.png"),
     "img/cajatomate.png"
 )
 
@@ -180,7 +218,7 @@ despensa_cebolla = Estacion( #Morado
     370,
     (140,90,0),
     "Cebolla",
-    Ingrediente("Cebolla","img/cebolla.png"),
+    Ingrediente("Cebolla","img/cebolla.png", "img/cebollapicada.png"),
     "img/cajacebolla.png"
 )
 
@@ -193,7 +231,7 @@ despensa_queso = Estacion(
     "img/cajaquesho.png"
 )
 
-despensa_carne = Estacion( #verde
+despensa_carne = Estacion(
     450,
     380,
     (0,255,0),
@@ -201,7 +239,23 @@ despensa_carne = Estacion( #verde
     Ingrediente("Carne","img/carne.png"),
     "img/refricarne.jpeg"
 )
-
+#### FALTAN ESTAS IMAGENES DE ACOMODAR Y DE QUE SE VEAN #### #### #### #### #### #### #### #### #### 
+despensa_pan = Estacion(
+    550,
+    380,
+    (255,255,0),
+    "Pan",
+    Ingrediente("Pan","img/pan.png"),
+    "img/cajapan.png"
+)
+despensa_papas = Estacion(
+    560,
+    380,
+    (255,255,0),
+    "Papas",
+    Ingrediente("Papas","img/papas.png"),
+    "img/cajapapas.png"
+)
 tabla_picar = Estacion(
     600,
     380,
@@ -248,7 +302,7 @@ entrega = Estacion(
 )
 
 estaciones = [
-    despensa_lechuga, despensa_tomate, despensa_cebolla, despensa_queso, despensa_carne,
+    despensa_lechuga, despensa_tomate, despensa_cebolla, despensa_queso, despensa_carne,despensa_pan, despensa_papas,
     tabla_picar, cocina, freidora, refrigeradora,
     entrega
 ]
@@ -257,20 +311,40 @@ estaciones = [
 #--- Clase Orden ----------------------
 
 class Orden:
-    def __init__(self, nivel, pedido, ingredientesNecesarios):
+    def __init__(self, nivel, pedido, ingredientesNecesarios, requierePicar=False):
         self.nivel = nivel
         self.pedido = pedido
         self.ingredientesNecesarios = ingredientesNecesarios
+        self.requierePicar = requierePicar
 
+<<<<<<< HEAD
 
     
+=======
+>>>>>>> b0f3fce78aa603a117bf37ca04480f862d9c5008
     def __str__(self):
         return f"{self.pedido} - ingredientes: {self.ingredientesNecesarios}"
 
     def verificar(self, inventarioChef):
+<<<<<<< HEAD
 
         ingredientes = [i.nombre for i in inventarioChef]
         return all(ing in ingredientes for ing in self.ingredientesNecesarios)
+=======
+        ingredientes_inventario = [(i.nombre.replace(" picado", ""), i.picado) for i in inventarioChef]
+        
+        for ing_necesario in self.ingredientesNecesarios:
+            encontrado = False
+            for nombre, picado in ingredientes_inventario:
+                if nombre == ing_necesario:
+                    if self.requierePicar and not picado:
+                        return False
+                    encontrado = True
+                    break
+            if not encontrado:
+                return False
+        return True
+>>>>>>> b0f3fce78aa603a117bf37ca04480f862d9c5008
     
 
     def agarrar_ingrediente(self, ingrediente):
@@ -309,9 +383,9 @@ class Orden:
 #---------- Niveles ----------------------------------------
 
 PedidosNivel = {
-        1: [Orden(1, "Ensalada LT", ["Lechuga", "Tomate"]),
-            Orden(1, "Ensalada LC", ["Lechuga", "Cebolla"]),
-            Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"])],
+        1: [Orden(1, "Ensalada LT", ["Lechuga", "Tomate"], requierePicar=True),
+            Orden(1, "Ensalada LC", ["Lechuga", "Cebolla"], requierePicar=False),
+            Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"], requierePicar=True)],
         2: [Orden.orden_hamburguesa()]}
 
 
@@ -333,6 +407,7 @@ escenario_actual = 1
 
 def generar_pedido(nivel):
     if nivel == 1:
+<<<<<<< HEAD
 
         return random.choice([
             Orden(1, "Ensalada LT", ["Lechuga", "Tomate"]),
@@ -344,20 +419,21 @@ def generar_pedido(nivel):
 
         pedido = random.choice(PedidosNivel[1])
 
+=======
+        pedido = random.choice(PedidosNivel[1])
+>>>>>>> b0f3fce78aa603a117bf37ca04480f862d9c5008
     elif nivel == 2:
-        return random.choice([
+        pedido = random.choice([
             Orden(2, "Hamburguesa", ["Pan", "Carne", "Queso"]),
 
             Orden(2, "Hamburguesa Especial", ["Pan", "Carne", "Tomate", "Lechuga"])
         ])
-    
     else:
-        return random.choice([
+        pedido = random.choice([
             Orden(3, "Combo", ["Pan", "Carne", "Queso", "Papas"])
         ])
-        
     
-
+    return pedido
 
 def verificar_nivel():
     global nivel_actual
@@ -403,7 +479,6 @@ def mostrar_inventario(chef, x, y):
     )
 
     for i, ingrediente in enumerate(chef.inventario):
-
         if ingrediente.picado:
             imagen_actual = ingrediente.imagen_picada
 
@@ -422,10 +497,11 @@ def mostrar_inventario(chef, x, y):
                 y+30
             )
         )
-
         
 
 pedido_actual = generar_pedido(nivel_actual)
+mostrar_mensaje = False
+tiempo_mensaje = 0
 
 def dibujar_cocina():#para que cambie el escenario dependiendo del nivel
     if escenario_actual == 1:
@@ -495,6 +571,7 @@ while running:
                         print(f"Estacion actual: {estacion.nombre}")
 
                         if estacion.nombre == "Entrega":
+<<<<<<< HEAD
 
                             if pedido_actual.verficar(chef_activo.inventario):
                                 
@@ -502,6 +579,11 @@ while running:
                             print(f"Necesitas: {pedido_actual.ingredientesNecesarios}")
                             if pedido_actual.verificar(chef_activo.inventario):
 
+=======
+                            if pedido_actual.verificar(chef_activo.inventario):
+                                print(f"Necesitas: {pedido_actual.ingredientesNecesarios}")
+                            if pedido_actual.verificar(chef_activo.inventario):
+>>>>>>> b0f3fce78aa603a117bf37ca04480f862d9c5008
                                 print("Pedido actual entregado")
 
                                 puntaje += 100
@@ -515,6 +597,8 @@ while running:
                             else:
                                 print("Pedido incorrecto")
                                 chef_activo.inventario.clear()
+                                mostrar_mensaje = True              
+                                tiempo_mensaje = 60
 
                         elif estacion.ingrediente:
                             chef_activo.agarrar_ingrediente(estacion.ingrediente)
@@ -609,12 +693,11 @@ while running:
         ):
             for ingrediente in ingredientes_faltantes:
                 if ingrediente.nombre == nombre:
+                    if pedido_actual.requierePicar:
+                        imagen = pygame.transform.scale(ingrediente.imagen_picada, (45, 45))
+                    else:
+                        imagen = pygame.transform.scale(ingrediente.imagen, (45, 45))
 
-                    imagen = pygame.transform.scale(
-                        ingrediente.imagen,
-                        (45,45)
-                    )
-                    
                     screen.blit(
                         imagen,
                         (
@@ -622,6 +705,7 @@ while running:
                             50
                         )
                     )
+                    break
 
         texto_nivel = fuente_boton.render(
             f"Nivel {nivel_actual}",
@@ -718,8 +802,9 @@ while running:
         chef2.draw(screen)
 
         keys = pygame.key.get_pressed()
-        chef_activo.move(keys)
-        
+        chef_activo.move(keys, chef2)
+                   
+
         #Muestra inventarios en pantalla
         mostrar_inventario(
             chef1,
@@ -749,6 +834,20 @@ while running:
                         estacion.y - 40
                     )
                 )
+        #mostrar mensaje emergente cuando el pedido es incorrecto
+        if mostrar_mensaje:
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 128))  
+            screen.blit(overlay, (0, 0))
+            pygame.draw.rect(screen,(150, 50, 50), (WIDTH//2 - 150, HEIGHT//2 - 50, 300, 100), border_radius=10)
+            fuente = pygame.font.SysFont("Arial", 28, bold=True)
+            texto = fuente.render("¡Pedido incorrecto!", True, (255, 255, 255))
+            screen.blit(texto, (WIDTH//2 - texto.get_width()//2, HEIGHT//2 - texto.get_height()//2))
+
+        # El tiempo que dura en aparecer el mensaje
+            tiempo_mensaje -= 1
+            if tiempo_mensaje <= 0:
+                mostrar_mensaje = False
 
     pygame.display.flip()
     clock.tick(FPS)
