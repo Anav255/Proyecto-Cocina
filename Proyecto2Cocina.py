@@ -27,7 +27,7 @@ fuente_titulo = pygame.font.SysFont(None, 80)
 fuente_boton = pygame.font.SysFont(None, 50)
 fuente_pequena = pygame.font.SysFont(None, 30)
 
-#--- Crear Chef ------------------------------------------------
+#--- Clase Chef ------------------------------------------------
 
 class Chef:
 
@@ -488,8 +488,8 @@ PedidosNivel = {
             Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"], requierePicar=True),
             Orden(1, "Ensalada LC", ["Lechuga", "Cebolla"], requierePicar=True)],
             
-        2: [Orden.orden_hamburguesa()],
-        3: [Orden.orden_3()]}
+        2: [Orden.orden_hamburguesa],
+        3: [Orden.orden_3]}
 
 
 
@@ -503,8 +503,8 @@ def timer_pedidos(nivel):
         tiempo = random.randint(15, 20)
     elif nivel == 2:
         tiempo = random.randint(25, 30)
-    else:
-        tiempo = random.randint(25, 30)
+    elif nivel == 3:
+        tiempo = random.randint(30, 35)
     
     pygame.time.set_timer(Pedidos, tiempo * 1000)
     return tiempo
@@ -514,15 +514,26 @@ puntaje = 0
 pedidos_completados = 0
 escenario_actual = 1
 
-def generar_pedido(nivel):
-    if nivel == 1:
-        return random.choice(PedidosNivel[1])
-    elif nivel == 2:
-        return random.choice(PedidosNivel[2])
-    elif nivel == 3:
-        return random.choice(PedidosNivel[3])
+def generar_pedido(nivel, pedido_anterior = None):
+    if nivel not in PedidosNivel:
+        return None          
+    opciones = PedidosNivel[nivel]
     
+    if len(opciones) <= 1:
+        opcion = opciones[0]
+        return opcion() if callable(opcion) else opcion
+        
+    nuevo_pedido = random.choice(opciones)
+    if callable(nuevo_pedido):
+        nuevo_pedido = nuevo_pedido()
 
+    while pedido_anterior and nuevo_pedido.pedido == pedido_anterior.pedido:
+        nuevo_pedido = random.choice(opciones)
+        if callable(nuevo_pedido):
+            nuevo_pedido = nuevo_pedido()
+            
+    return nuevo_pedido
+           
 def cambiar_escenario():
     global escenario_actual
 
@@ -582,6 +593,7 @@ def mostrar_inventario(chef, x, y, nivel = 1):
             )
         )
         
+#Variables necesarias para el ciclo del programa
 
 pedido_actual = generar_pedido(nivel_actual)
 mostrar_mensaje_pedido = False
@@ -597,7 +609,10 @@ carne_lista = False
 tiempo_carne_lista = 0
 mostrar_quemada = False
 tiempo_mensaje_quemada = 0
+boton_info = pygame.Rect(WIDTH - 280, HEIGHT - 60, 160, 40)
+mostrar_info = False
 
+# Orden de los objetos segun el mapa en el que estan
 def cargar_escenario():
     if escenario_actual == 1:
         cocina.x = 320
@@ -642,35 +657,39 @@ while running:
             running = False
         
         if estado ==  "menu":  
-            screen.blit(fondo_menu, (0, 0))
-
+            
             if event.type == pygame.MOUSEBUTTONDOWN:
-
-                if boton_play.collidepoint(event.pos):
-                    estado = "juego"
-                    mostrar_mensaje_cambiar_nivel = False
-                    tiempo_inicio = pygame.time.get_ticks()
-                    nivel_actual = 1
-                    puntaje = 0
-                    pedidos_completados = 0
-                    escenario_actual = 1
-                    tiempo_juego = tiempo_nivel[1]
-                    pedido_actual = generar_pedido(nivel_actual)
-                    tiempo_limite_pedido = timer_pedidos(nivel_actual)
-                    tiempo_inicio_pedido = pygame.time.get_ticks()
-                    chef1.inventario.clear()
-                    chef2.inventario.clear()
-                    timer_pedidos(nivel_actual)
+                if mostrar_info:
+                    mostrar_info = False
+                else:
+                    if boton_play.collidepoint(event.pos):
+                        estado = "juego"
+                        mostrar_mensaje_cambiar_nivel = False
+                        tiempo_inicio = pygame.time.get_ticks()
+                        nivel_actual = 1
+                        puntaje = 0
+                        pedidos_completados = 0
+                        escenario_actual = 1
+                        tiempo_juego = tiempo_nivel[1]
+                        pedido_actual = generar_pedido(nivel_actual)
+                        tiempo_limite_pedido = timer_pedidos(nivel_actual)
+                        tiempo_inicio_pedido = pygame.time.get_ticks()
+                        chef1.inventario.clear()
+                        chef2.inventario.clear()
+                        timer_pedidos(nivel_actual)
+                    elif boton_info.collidepoint(event.pos):
+                        mostrar_info = True
         
         if event.type == Pedidos:
             if estado == "juego":
                 puntaje = max(0, puntaje - 20)
                 print("Pedido perdido -20 puntos")
-                pedido_actual = generar_pedido(nivel_actual)
+                pedido_actual = generar_pedido(nivel_actual, pedido_actual)
                 tiempo_limite_pedido = timer_pedidos(nivel_actual)
                 tiempo_inicio_pedido = pygame.time.get_ticks()     
 
         if event.type == pygame.KEYDOWN:#cuando se presiona
+            # abrir la refri
             if mostrar_refri: 
                 if event.key == pygame.K_1:
                     fresco = next((i for i in ingredientes_faltantes if i.nombre == "Gaseosa"), None)
@@ -770,6 +789,7 @@ while running:
                                     puntaje = max(0, puntaje - puntos_perdidos)
 
                                     print(f"Pedido incorrecto: -{puntos_perdidos} puntos")
+                                    
                                     chef_activo.inventario.clear()
                                     mostrar_mensaje_pedido = True              
                                     tiempo_mensaje = 60
@@ -822,6 +842,8 @@ while running:
                             break
 
     if estado == "menu": #lo que ensena si esta en el menu
+        screen.blit(fondo_menu, (0, 0))
+
         titulo = fuente_titulo.render(
             "CRAZY SNACK RUSH",
             True,
@@ -839,9 +861,39 @@ while running:
             (0,150,0),
             boton_play
         )
-
+        
         screen.blit(titulo, (120,150))
         screen.blit(texto_play, (355,325))
+
+        #Muestra la información del proyecto
+        pygame.draw.rect(screen, (70, 100, 150), boton_info, border_radius=5)
+        texto_btn_info = fuente_boton.render("Información", True, (255, 255, 255))
+        screen.blit(texto_btn_info, (boton_info.x + (boton_info.width - texto_btn_info.get_width()) // 2, 
+                                     boton_info.y + (boton_info.height - texto_btn_info.get_height()) // 2))
+        if mostrar_info:
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))
+            screen.blit(overlay, (0, 0))
+            ancho_v, alto_v = 450, 300
+            x_v, y_v = WIDTH // 2 - ancho_v // 2, HEIGHT // 2 - alto_v // 2
+            pygame.draw.rect(screen, (40, 40, 40), (x_v, y_v, ancho_v, alto_v), border_radius=15)
+            pygame.draw.rect(screen, (255, 255, 255), (x_v, y_v, ancho_v, alto_v), width=2, border_radius=15)
+            fuente_titulo = pygame.font.SysFont("Arial", 26, bold=True)
+            fuente_texto = pygame.font.SysFont("Arial", 20)
+            
+            txt_titulo = fuente_titulo.render("Tecnologico de Costa Rica", True, (255, 255, 255))
+            txt_l1 = fuente_texto.render(" Ana Araya Núñez, Ericka Villalobos Muñoz", True, (255, 255, 255))
+            txt_l2 = fuente_texto.render("Ingeniería en Computadores", True, (255, 255, 255))
+            txt_l3 = fuente_texto.render("Introducción a la programación", True, (255, 255, 255))
+            txt_l4 = fuente_texto.render("Profesor: Santiago Gamboa", True, (255, 255, 255))
+            txt_l5 = fuente_texto.render("24 de junio 2026", True, (255, 255, 255))
+            
+            screen.blit(txt_titulo, (x_v + 30, y_v + 20))
+            screen.blit(txt_l1, (x_v + 30, y_v + 80))
+            screen.blit(txt_l2, (x_v + 30, y_v + 120))
+            screen.blit(txt_l3, (x_v + 30, y_v + 160))
+            screen.blit(txt_l4, (x_v + 30, y_v + 200))
+            screen.blit(txt_l5, (x_v + 30, y_v + 250))
 
     if estado == "juego":#lo que ensena si esta en el juego
         cargar_escenario()
@@ -852,9 +904,9 @@ while running:
                     if escenario_actual == 1:
                         color = (225, 225, 225)
                     elif escenario_actual == 2:
-                        color = (180, 180, 220)
+                        color = (70, 100, 150)
                     else:
-                        color = (220, 180, 180)
+                        color = (115, 45, 45)
                 else:
                     color = (40, 40, 40)
                     pygame.draw.rect(screen, color, (columna, fila, Tile_size, Tile_size))
@@ -964,6 +1016,7 @@ while running:
                     carne_lista = False
                     mostrar_quemada = True
                     tiempo_mensaje_quemada = 90
+
         #Para los pedidos que requieren de otra acción
         for i, nombre in enumerate(pedido_actual.ingredientesNecesarios):
 
@@ -999,25 +1052,6 @@ while running:
             (0,150,0)
         )
         
-
-        for i, ingrediente in enumerate(chef_activo.inventario):
-
-            texto_ing = pygame.font.SysFont(
-                None,
-                30
-            ).render(
-                ingrediente.nombre,
-                True,
-                (0,0,0)
-            )
-            screen.blit(
-                texto_ing,
-                (
-                    180 + i * 120,
-                    45
-                )
-            )
-
         #--- caja nivel ---
         pygame.draw.rect(
             screen,
@@ -1079,8 +1113,8 @@ while running:
                 estacion.draw(screen)
 
         #ensenar ambor chefs dentro de cuadricula
-        chef1.draw(screen)
-        chef2.draw(screen)
+            chef1.draw(screen)
+            chef2.draw(screen)
 
         keys = pygame.key.get_pressed()
         chef_opuesto = chef2 if chef_activo == chef1 else chef1
@@ -1093,7 +1127,7 @@ while running:
             20,
             HEIGHT-90,
             nivel_actual
-        )
+            )
 
         mostrar_inventario(
             chef2,
