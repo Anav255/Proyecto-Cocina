@@ -41,6 +41,11 @@ class Chef:
         self.direccion = "arriba"  # dirección inicial
         self.imagen_original = pygame.image.load(ruta_imagen)
         self.imagen_original = pygame.transform.scale(self.imagen_original, (self.size_visual, self.size_visual))
+        self.picado_listo = False
+        self.vegetales_picados = []
+        self.tiempo_inicio_picado = 0
+        self.frito_listo = False
+        self.tiempo_inicio_frito = 0
         
 
     def draw(self, screen):
@@ -105,7 +110,7 @@ class Chef:
                 ingrediente.nombre, ingrediente.ruta_imagen if hasattr(ingrediente, 'ruta_imagen') else None,
                 ingrediente.ruta_picado if hasattr(ingrediente, 'ruta_picado') else None,
                 ingrediente.ruta_cocinado if hasattr(ingrediente, 'ruta_cocinado') else None,
-                ingrediente.ruta_frito if hasattr(ingrediente, 'ruta_freido') else None)
+                ingrediente.ruta_frito if hasattr(ingrediente, 'ruta_frito') else None)
             nuevo.imagen = ingrediente.imagen.copy()
             nuevo.imagen_picada = ingrediente.imagen_picada.copy() 
             nuevo.imagen_cocinada = ingrediente.imagen_cocinada.copy()
@@ -118,16 +123,26 @@ class Chef:
             print("inventario lleno")    
 
     def picar_ingredientes(self):
-        for ingrediente in self.inventario:
-            if ingrediente.nombre in [
-                "Lechuga",
-                "Tomate",
-                "Cebolla"
-            ]:
-                ingrediente.imagen = ingrediente.imagen_picada
-                ingrediente.picado = True  
-                ingrediente.nombre = ingrediente.nombre + " picado"
-        print("Ingredientes picados")
+        vegetales = ["Lechuga", "Tomate", "Cebolla"]
+        self.vegetales_picados = [i.nombre for i in self.inventario if i.nombre in vegetales]
+        self.inventario = [i for i in self.inventario if i.nombre not in vegetales]
+        self.tiempo_inicio_picado = pygame.time.get_ticks()
+        self.picado_listo = False
+        
+
+    def recoger_picados(self):
+        for nombre_veg in self.vegetales_picados:
+            veg = next((i for i in ingredientes_faltantes if i.nombre == nombre_veg), None)
+            if veg:
+                self.agarrar_ingrediente(veg, nivel_actual)
+                for ing in self.inventario:
+                    if ing.nombre == nombre_veg:
+                        ing.picado = True
+                        ing.nombre = nombre_veg + " picado"
+                        ing.imagen = ing.imagen_picada
+        self.picado_listo = False
+        self.tiempo_inicio_picado = 0
+        self.vegetales_picados = []
     
     def cocinar_ingredientes(self):
         for ingrediente in self.inventario:
@@ -138,13 +153,21 @@ class Chef:
         print("Ingredientes cocinados")
 
     def freir_ingredientes(self):
-        for ingrediente in self.inventario:
-            if ingrediente.nombre == "Papas":
-                ingrediente.imagen = ingrediente.imagen_frita
-                ingrediente.frito = True
-                ingrediente.nombre = "Papas fritas"
-        print("Ingredientes fritos")
+        self.inventario = [i for i in self.inventario if i.nombre != "Papas"]
+        self.tiempo_inicio_frito = pygame.time.get_ticks()
+        self.frito_listo = False
 
+    def recoger_papasfritas(self):
+        papas = next((i for i in ingredientes_faltantes if i.nombre == "Papas"), None)
+        if papas:
+            self.agarrar_ingrediente(papas, nivel_actual)
+            for ing in self.inventario:
+                if ing.nombre == "Papas":
+                    ing.frito = True
+                    ing.nombre = "Papas fritas"
+                    ing.imagen = ing.imagen_frita
+        self.frito_listo = False
+        self.tiempo_inicio_frito = 0
     
 chef1 = Chef(100,250, (255, 0, 0), "img/chef1.png")
 chef2 = Chef(100,300, (0, 0, 255), "img/chef2.png")
@@ -462,8 +485,9 @@ class Orden:
 
 PedidosNivel = {
         1: [Orden(1, "Ensalada LT", ["Lechuga", "Tomate"], requierePicar=True),
-            Orden(1, "Ensalada LC", ["Lechuga", "Cebolla"], requierePicar=True),
-            Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"], requierePicar=True)],
+            Orden(1, "Ensalada LTC", ["Lechuga", "Tomate", "Cebolla"], requierePicar=True),
+            Orden(1, "Ensalada LC", ["Lechuga", "Cebolla"], requierePicar=True)],
+            
         2: [Orden.orden_hamburguesa()],
         3: [Orden.orden_3()]}
 
@@ -511,9 +535,9 @@ def cambiar_escenario():
 
 pedido_actual = generar_pedido(nivel_actual)
 tiempo_nivel = {
-    1: 30,
-    2: 30,
-    3: 30
+    1: 100,
+    2: 80,
+    3: 60
 }
 tiempo_juego = tiempo_nivel[nivel_actual]
 
@@ -567,6 +591,12 @@ nivel_completado = 1
 tiempo_limite_pedido = timer_pedidos(nivel_actual)
 tiempo_inicio_pedido = pygame.time.get_ticks()
 mostrar_refri = False
+cocinando = False
+tiempo_inicio_cocina = 0
+carne_lista = False
+tiempo_carne_lista = 0
+mostrar_quemada = False
+tiempo_mensaje_quemada = 0
 
 def cargar_escenario():
     if escenario_actual == 1:
@@ -587,11 +617,14 @@ def cargar_escenario():
         tabla_picar.y = 100
 
     elif escenario_actual == 3:
-        cocina.x = 300
-        cocina.y = 380
+        cocina.x = 200
+        cocina.y = 100
 
         freidora.x = 500
         freidora.y = 100
+
+        entrega.x = 340
+        entrega.y = 100
 
         tabla_picar.x = 300
         tabla_picar.x = 100
@@ -631,9 +664,11 @@ while running:
         
         if event.type == Pedidos:
             if estado == "juego":
+                puntaje = max(0, puntaje - 20)
+                print("Pedido perdido -20 puntos")
                 pedido_actual = generar_pedido(nivel_actual)
                 tiempo_limite_pedido = timer_pedidos(nivel_actual)
-                tiempo_inicio_pedido = pygame.time.get_ticks()
+                tiempo_inicio_pedido = pygame.time.get_ticks()     
 
         if event.type == pygame.KEYDOWN:#cuando se presiona
             if mostrar_refri: 
@@ -708,7 +743,14 @@ while running:
                                 if pedido_actual.verificar(chef_activo.inventario):
                                     print("Pedido actual entregado")
 
-                                    puntaje += 100
+                                    if nivel_actual == 1:
+                                        puntos_ganados = random.randint(40, 60)
+                                    elif nivel_actual == 2:
+                                        puntos_ganados = random.randint(60, 80)
+                                    else:
+                                        puntos_ganados = random.randint(80, 100)
+
+                                    puntaje += puntos_ganados
                                     pedidos_completados += 1
 
                                     chef_activo.inventario.clear()
@@ -718,6 +760,16 @@ while running:
                                 
                                 else:
                                     print("Pedido incorrecto")
+                                    if nivel_actual == 1:
+                                        puntos_perdidos = random.randint(10, 20)
+                                    elif nivel_actual == 2:
+                                        puntos_perdidos = random.randint(15, 25)
+                                    else:
+                                        puntos_perdidos = random.randint(20, 30)
+
+                                    puntaje = max(0, puntaje - puntos_perdidos)
+
+                                    print(f"Pedido incorrecto: -{puntos_perdidos} puntos")
                                     chef_activo.inventario.clear()
                                     mostrar_mensaje_pedido = True              
                                     tiempo_mensaje = 60
@@ -729,16 +781,38 @@ while running:
                                 else:
                                     print("Inventario vacío, no hay nada que tirar")
                             elif estacion.nombre == "Cocina":
-                                chef_activo.cocinar_ingredientes()
+                                if carne_lista:
+                                    carne_cocinada = next((i for i in ingredientes_faltantes if i.nombre == "Carne"), None)
+                                    if carne_cocinada:
+                                        chef_activo.agarrar_ingrediente(carne_cocinada, nivel_actual)
+                                        # marcarla como cocinada
+                                        for ing in chef_activo.inventario:
+                                            if ing.nombre == "Carne":
+                                                ing.cocinado = True
+                                                ing.nombre = "Carne cocinada"
+                                                ing.imagen = ing.imagen_cocinada
+                                    cocinando = False
+                                    carne_lista = False
+                                elif any(i.nombre == "Carne" for i in chef_activo.inventario):
+                                    cocinando = True
+                                    tiempo_inicio_cocina = pygame.time.get_ticks()
+                                    # quitar la carne del inventario mientras se cocina
+                                    chef_activo.inventario = [i for i in chef_activo.inventario if i.nombre != "Carne"]
 
                             elif estacion.nombre == "Freidora":
-                                chef_activo.freir_ingredientes()
+                                    if chef_activo.frito_listo:
+                                        chef_activo.recoger_papasfritas()
+                                    elif any(i.nombre == "Papas" for i in chef_activo.inventario):
+                                        chef_activo.freir_ingredientes()
 
                             elif estacion.ingrediente:
                                 chef_activo.agarrar_ingrediente(estacion.ingrediente, nivel_actual)
                         
                             elif estacion.nombre == "Tabla":
-                                chef_activo.picar_ingredientes()
+                                if chef_activo.picado_listo:
+                                    chef_activo.recoger_picados()
+                                elif any(i.nombre in ["Lechuga", "Tomate", "Cebolla"] for i in chef_activo.inventario):
+                                    chef_activo.picar_ingredientes()
 
                             elif estacion.nombre == "Refrigeradora":
                                 print("Abriendo refrigeradora")
@@ -831,11 +905,65 @@ while running:
         )
         tiempo_pasado_pedido = (pygame.time.get_ticks() - tiempo_inicio_pedido) // 1000
         tiempo_restante_pedido = max(0, tiempo_limite_pedido - tiempo_pasado_pedido)
+
+        if tiempo_restante_pedido <= 0:
+            
+            puntaje -= 20
+            pedido_actual = generar_pedido(nivel_actual)
+            tiempo_limite_pedido = timer_pedidos(nivel_actual)
+            tiempo_inicio_pedido = pygame.time.get_ticks()
+
         ancho_barra = int((tiempo_restante_pedido / tiempo_limite_pedido) * 340)
         color_barra = (0, 200, 0) if tiempo_restante_pedido > 10 else (255, 0, 0)
 
         pygame.draw.rect(screen, color_barra, (20, 100, ancho_barra, 10))
-        
+
+        # Barra para cortar verduras
+        if chef_activo.vegetales_picados:
+            tiempo_picado = (pygame.time.get_ticks() - chef_activo.tiempo_inicio_picado) / 1000
+            progreso = min(tiempo_picado / 2, 1)
+            ancho = int(progreso * 200)
+            pygame.draw.rect(screen,(100,100,100),(WIDTH//2 - 100, HEIGHT//2 + 20, 200, 15))
+            pygame.draw.rect(screen, (0,200,0), (WIDTH//2 - 100, HEIGHT//2 + 20, ancho, 15))
+            if progreso >= 1:
+                chef_activo.picado_listo = True
+
+        # Barra para freir papas
+        if chef_activo.tiempo_inicio_frito > 0:
+            tiempo_frito = (pygame.time.get_ticks() - chef_activo.tiempo_inicio_frito) / 1000
+            progreso = min(tiempo_frito / 3, 1)  
+            ancho = int(progreso * 200)
+            pygame.draw.rect(screen, (100, 100, 100), (WIDTH//2 - 100, HEIGHT//2 + 40, 200, 15))
+            pygame.draw.rect(screen, (255, 165, 0), (WIDTH//2 - 100, HEIGHT//2 + 40, ancho, 15))
+            if progreso >= 1:
+                chef_activo.frito_listo = True
+                
+        # Barra para cocinar la carne
+        if cocinando:
+            tiempo_cocina_pasado = (pygame.time.get_ticks() - tiempo_inicio_cocina) / 1000
+    
+            if not carne_lista:
+                progreso = min(tiempo_cocina_pasado / 3, 1)
+                ancho_cocina = int(progreso * 200)
+                pygame.draw.rect(screen, (100, 100, 100), (WIDTH//2 - 100, HEIGHT//2, 200, 15))
+                pygame.draw.rect(screen, (255, 150, 0), (WIDTH//2 - 100, HEIGHT//2, ancho_cocina, 15))
+                    
+                if tiempo_cocina_pasado >= 3:
+                    chef_activo.cocinar_ingredientes()  
+                    carne_lista = True                        
+                    tiempo_carne_lista = pygame.time.get_ticks()
+                
+            else:
+                tiempo_espera = (pygame.time.get_ticks() - tiempo_carne_lista) / 1000
+                fuente_aviso = pygame.font.SysFont("Arial", 22, bold=True)
+                aviso = fuente_aviso.render("¡Saca la carne! (E en cocina)", True, (255, 50, 0))
+                screen.blit(aviso, (WIDTH//2 - aviso.get_width()//2, HEIGHT//2 - 30))
+                    
+                if tiempo_espera >= 2:
+                    cocinando = False
+                    carne_lista = False
+                    mostrar_quemada = True
+                    tiempo_mensaje_quemada = 90
         #Para los pedidos que requieren de otra acción
         for i, nombre in enumerate(pedido_actual.ingredientesNecesarios):
 
